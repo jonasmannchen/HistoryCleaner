@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101412">
+  <meta name="description" content="History Cleaner – ausgewählte Websites in separaten Browser-Tabs öffnen.">
+  <title>History Cleaner</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d100f;
+      --panel: rgba(24, 30, 27, .82);
+      --panel-strong: #171d19;
+      --panel-hover: #202823;
+      --line: rgba(227, 241, 231, .10);
+      --line-strong: rgba(227, 241, 231, .17);
+      --text: #f0f5f1;
+      --muted: #99a79d;
+      --green: #b8f36b;
+      --green-deep: #89cc36;
+      --danger: #ff9c91;
+      --shadow: 0 22px 70px rgba(0, 0, 0, .30);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0; min-height: 100vh; color: var(--text);
+      background: radial-gradient(900px 540px at 8% -12%, rgba(123, 184, 91, .15), transparent 62%),
+                  radial-gradient(740px 500px at 100% 8%, rgba(67, 118, 83, .12), transparent 60%), var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: -.015em;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .shell { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 26px 0 44px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 44px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 750; letter-spacing: -.04em; font-size: 17px; }
+    .brand-mark { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid rgba(184,243,107,.27); border-radius: 15px; background: linear-gradient(145deg, rgba(184,243,107,.18), rgba(184,243,107,.04)); color: var(--green); }
+    .brand-mark svg { width: 22px; height: 22px; }
+    .local-pill { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 999px; padding: 9px 12px; color: #bdc9c0; font-size: 12px; background: rgba(255,255,255,.025); }
+    .local-pill .dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; box-shadow: 0 0 12px rgba(184,243,107,.5); }
+    .hero { display: grid; grid-template-columns: 1.08fr .92fr; gap: 28px; align-items: end; margin-bottom: 28px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--green); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .16em; margin-bottom: 18px; }
+    .eyebrow-line { width: 23px; height: 1px; background: var(--green); }
+    h1 { margin: 0; font-size: clamp(42px, 6.8vw, 76px); line-height: .99; letter-spacing: -.075em; font-weight: 760; }
+    h1 span { color: var(--green); }
+    .hero-copy { max-width: 480px; margin: 20px 0 0; color: var(--muted); font-size: 15px; line-height: 1.75; }
+    .hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .stat { padding: 17px 16px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.025); }
+    .stat-value { display: block; font-size: 25px; font-weight: 760; letter-spacing: -.06em; }
+    .stat-label { display: block; margin-top: 5px; font-size: 11px; line-height: 1.35; color: var(--muted); }
+    .control-panel { display: grid; grid-template-columns: 1fr auto; gap: 22px; align-items: center; padding: 22px; border: 1px solid rgba(184,243,107,.19); border-radius: var(--radius); background: linear-gradient(120deg, rgba(37, 49, 39, .88), rgba(23, 29, 25, .87)); box-shadow: var(--shadow); margin: 30px 0 18px; }
+    .control-title { font-size: 15px; font-weight: 750; margin-bottom: 7px; }
+    .control-caption { font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .control-right { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+    .primary, .secondary, .danger-button { border: 0; border-radius: 14px; min-height: 46px; padding: 0 17px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-size: 13px; font-weight: 800; transition: transform .18s ease, background .18s ease, border-color .18s ease; }
+    .primary { color: #15200f; background: var(--green); box-shadow: 0 7px 24px rgba(184,243,107,.12); }
+    .primary:hover { background: #c9ff89; transform: translateY(-1px); }
+    .primary:disabled { opacity: .42; cursor: not-allowed; transform: none; }
+    .secondary { color: var(--text); background: rgba(255,255,255,.04); border: 1px solid var(--line-strong); }
+    .secondary:hover { background: rgba(255,255,255,.08); }
+    .danger-button { color: #ffd6d1; background: rgba(255, 110, 96, .10); border: 1px solid rgba(255, 110, 96, .22); }
+    .danger-button:hover { background: rgba(255, 110, 96, .17); }
+    .button-icon { width: 16px; height: 16px; }
+    .progress-card { display: none; padding: 18px 20px; background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 18px; margin: 0 0 28px; }
+    .progress-card.visible { display: block; }
+    .progress-top { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 12px; }
+    .progress-title { font-size: 13px; font-weight: 750; }
+    .progress-count { color: var(--green); font-size: 12px; font-weight: 750; white-space: nowrap; }
+    .track { width: 100%; height: 6px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+    .track-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--green-deep), var(--green)); transition: width .2s ease; }
+    .status-text { color: var(--muted); font-size: 12px; margin-top: 11px; line-height: 1.5; }
+    .section-head { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin: 38px 0 16px; }
+    .section-kicker { color: var(--green); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .15em; margin-bottom: 9px; }
+    h2 { margin: 0; font-size: clamp(24px, 3vw, 31px); letter-spacing: -.05em; }
+    .section-desc { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 8px 0 0; }
+    .selection-tools { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .tool-button { border: 1px solid var(--line); background: rgba(255,255,255,.025); color: #bec9c0; border-radius: 10px; font-size: 11px; font-weight: 700; padding: 10px 12px; }
+    .tool-button:hover { border-color: var(--line-strong); color: var(--text); }
+    .settings-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 15px 17px; margin: 18px 0; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.022); }
+    .setting-label { font-size: 12px; font-weight: 750; }
+    .setting-help { margin-top: 4px; color: var(--muted); font-size: 11px; }
+    .range-wrap { display: flex; align-items: center; gap: 13px; min-width: min(100%, 310px); }
+    input[type="range"] { appearance: none; width: 210px; height: 4px; border-radius: 999px; background: rgba(255,255,255,.15); outline: none; accent-color: var(--green); }
+    input[type="range"]::-webkit-slider-thumb { appearance: none; width: 15px; height: 15px; border: 3px solid #d5ffad; background: #25351c; border-radius: 50%; box-shadow: 0 0 0 4px rgba(184,243,107,.1); }
+    .range-value { min-width: 68px; text-align: right; color: var(--green); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .categories { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+    .category { border: 1px solid var(--line); border-radius: 20px; background: rgba(23, 29, 25, .70); overflow: hidden; transition: border-color .18s ease, transform .18s ease; }
+    .category:hover { border-color: var(--line-strong); }
+    .category.full { grid-column: 1 / -1; }
+    .category-head { display: flex; gap: 13px; align-items: center; padding: 18px 18px 16px; border-bottom: 1px solid var(--line); }
+    .category-icon { flex: 0 0 42px; width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid rgba(184,243,107,.15); border-radius: 14px; background: rgba(184,243,107,.07); font-size: 20px; }
+    .category-heading { flex: 1; min-width: 0; }
+    .category-heading h3 { margin: 0; font-size: 14px; letter-spacing: -.025em; }
+    .category-heading p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+    .category-count { color: #c9d4cc; font-size: 11px; background: rgba(255,255,255,.05); padding: 6px 8px; border-radius: 8px; white-space: nowrap; }
+    .site-list { padding: 5px 10px 10px; }
+    .site { display: flex; align-items: center; gap: 12px; padding: 11px 8px; border-radius: 11px; min-width: 0; }
+    .site:hover { background: rgba(255,255,255,.035); }
+    .site-check { appearance: none; flex: 0 0 17px; width: 17px; height: 17px; margin: 0; border: 1px solid rgba(221,235,225,.26); border-radius: 5px; background: rgba(255,255,255,.025); cursor: pointer; display: grid; place-items: center; }
+    .site-check:checked { background: var(--green); border-color: var(--green); }
+    .site-check:checked::after { content: ""; width: 7px; height: 4px; border-left: 2px solid #182414; border-bottom: 2px solid #182414; transform: rotate(-45deg) translateY(-1px); }
+    .site-check:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
+    .site-info { min-width: 0; flex: 1; }
+    .site-name { display: block; font-size: 12px; font-weight: 700; line-height: 1.4; }
+    .site-desc { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.4; }
+    .site-open { width: 28px; height: 28px; flex: 0 0 28px; display: grid; place-items: center; color: #92a096; text-decoration: none; border: 1px solid transparent; border-radius: 9px; }
+    .site-open:hover { color: var(--green); border-color: var(--line); background: rgba(255,255,255,.04); }
+    .site-open svg { width: 13px; height: 13px; }
+    .site.hidden { display: none; }
+    .category.empty { display: none; }
+    .note { margin-top: 26px; border: 1px solid rgba(255, 203, 113, .17); background: rgba(255, 203, 113, .045); border-radius: 18px; padding: 17px 18px; display: flex; align-items: flex-start; gap: 12px; }
+    .note-icon { color: #ffd080; font-size: 16px; line-height: 1.3; }
+    .note strong { display: block; font-size: 12px; margin-bottom: 5px; }
+    .note p { margin: 0; color: #b7b8a8; font-size: 11px; line-height: 1.7; }
+    .footer { margin-top: 32px; padding-top: 19px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; color: #78847b; font-size: 10px; line-height: 1.6; }
+    .footer strong { color: #a6b1a8; font-weight: 700; }
+    .search-wrap { display: flex; align-items: center; gap: 9px; border: 1px solid var(--line); background: rgba(255,255,255,.025); border-radius: 12px; padding: 0 12px; width: min(100%, 260px); }
+    .search-wrap svg { width: 15px; height: 15px; flex: 0 0 auto; color: var(--muted); }
+    .search-wrap input { width: 100%; min-width: 0; height: 39px; color: var(--text); border: 0; outline: 0; background: transparent; font-size: 11px; }
+    .search-wrap input::placeholder { color: #7f8b82; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center; padding: 20px; background: rgba(4, 7, 5, .76); backdrop-filter: blur(14px); }
+    .modal-backdrop.open { display: flex; animation: fadeIn .16s ease-out; }
+    .modal { width: min(460px, 100%); padding: 25px; border: 1px solid var(--line-strong); border-radius: 24px; background: #171d19; box-shadow: 0 30px 100px rgba(0,0,0,.5); animation: rise .2s ease-out; }
+    .modal-icon { display: grid; place-items: center; width: 46px; height: 46px; margin-bottom: 18px; border: 1px solid rgba(184,243,107,.2); background: rgba(184,243,107,.08); color: var(--green); border-radius: 15px; }
+    .modal-icon svg { width: 22px; height: 22px; }
+    .modal h3 { margin: 0; font-size: 23px; letter-spacing: -.05em; }
+    .modal p { color: var(--muted); font-size: 12px; line-height: 1.75; margin: 12px 0 17px; }
+    .modal-summary { padding: 13px 14px; border: 1px solid var(--line); background: rgba(255,255,255,.025); border-radius: 13px; font-size: 12px; line-height: 1.7; margin-bottom: 17px; }
+    .modal-summary strong { color: var(--green); }
+    .modal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 9px; }
+    .modal .primary, .modal .secondary { min-height: 42px; }
+    .modal-close { position: absolute; top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.05); color: var(--text); display: grid; place-items: center; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @media (max-width: 780px) {
+      .shell { width: min(100% - 28px, 600px); padding-top: 18px; }
+      .topbar { margin-bottom: 36px; }
+      .hero { grid-template-columns: 1fr; gap: 26px; }
+      .hero-stats { max-width: 480px; }
+      .control-panel { grid-template-columns: 1fr; }
+      .control-right { justify-content: stretch; }
+      .control-right button { flex: 1; }
+      .section-head { align-items: flex-start; flex-direction: column; }
+      .selection-tools { justify-content: flex-start; }
+      .categories { grid-template-columns: 1fr; }
+      .category.full { grid-column: auto; }
+    }
+    @media (max-width: 440px) {
+      .local-pill { font-size: 0; gap: 0; width: 33px; height: 33px; justify-content: center; padding: 0; }
+      .local-pill .dot { width: 8px; height: 8px; }
+      .brand { font-size: 15px; }
+      .brand-mark { width: 38px; height: 38px; }
+      h1 { font-size: 48px; }
+      .hero-copy { font-size: 13px; }
+      .stat { padding: 13px 11px; }
+      .stat-value { font-size: 22px; }
+      .control-panel { padding: 17px; }
+      .control-right { flex-direction: column; }
+      .range-wrap { width: 100%; min-width: 0; }
+      input[type="range"] { width: 100%; min-width: 0; }
+      .settings-row { align-items: flex-start; flex-direction: column; }
+      .footer { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13.5A7.5 7.5 0 0 1 11.5 6H20v8.5A5.5 5.5 0 0 1 14.5 20H11"/><path d="M4 20c1.3-4.6 4.4-7.7 10-10"/><path d="M4 13.5V20h7"/></svg>
+        </div>
+        <span>History Cleaner</span>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <div class="eyebrow"><span class="eyebrow-line"></span> Dein Web-Shortcut</div>
+        <h1>Viele Seiten.<br><span>Ein Klick.</span></h1>
+        <p class="hero-copy">Wähle aus 50 Seiten rund um Umwelt, Bildung, Hilfe, Wissenschaft und Demokratie. History Cleaner öffnet deine Auswahl in separaten Browser-Tabs – mit einstellbarem Abstand zwischen den Seitenaufrufen.</p>
+      </div>
+      <div class="hero-stats" aria-label="Übersicht">
+        <div class="stat"><span class="stat-value">50</span><span class="stat-label">Websites<br>in der Sammlung</span></div>
+        <div class="stat"><span class="stat-value">05</span><span class="stat-label">Themen-<br>kategorien</span></div>
+        <div class="stat"><span class="stat-value" id="selectedStat">50</span><span class="stat-label">Aktuell<br>ausgewählt</span></div>
+      </div>
+    </section>
+
+    <section class="control-panel" aria-label="Öffnen steuern">
+      <div>
+        <div class="control-title">Bereit, deine Auswahl zu öffnen?</div>
+        <div class="control-caption" id="controlCaption">50 Websites ausgewählt · werden nacheinander geladen.</div>
+      </div>
+      <div class="control-right">
+        <button class="primary" id="startBtn" type="button">
+          <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg>
+          Auswahl öffnen <span aria-hidden="true">↗</span>
+        </button>
+        <button class="danger-button" id="stopBtn" type="button" disabled>
+          <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+          Stoppen
+        </button>
+      </div>
+    </section>
+
+    <section class="progress-card" id="progressCard" aria-live="polite">
+      <div class="progress-top"><div class="progress-title" id="progressTitle">Öffnung wird vorbereitet</div><div class="progress-count" id="progressCount">0 / 50</div></div>
+      <div class="track"><div class="track-fill" id="progressFill"></div></div>
+      <div class="status-text" id="statusText">Bitte lass diesen Tab geöffnet, bis der Vorgang abgeschlossen ist.</div>
+    </section>
+
+    <section class="settings-row" aria-label="Verzögerung einstellen">
+      <div><div class="setting-label">Abstand zwischen Seiten</div><div class="setting-help">Die Tabs werden vorbereitet und dann nacheinander geladen.</div></div>
+      <div class="range-wrap"><input id="delayRange" type="range" min="250" max="3000" step="250" value="1000" aria-label="Verzögerung in Millisekunden"><span class="range-value" id="delayValue">1,0 Sek.</span></div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <div><div class="section-kicker">Die Sammlung</div><h2>Websites auswählen</h2><p class="section-desc">Wähle einzelne Seiten oder ganze Themenbereiche aus.</p></div>
+        <div class="selection-tools">
+          <label class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
+            <input id="searchInput" type="search" placeholder="Website suchen…" autocomplete="off" aria-label="Websites durchsuchen">
+          </label>
+          <button class="tool-button" id="selectAllBtn" type="button">Alle auswählen</button>
+          <button class="tool-button" id="selectNoneBtn" type="button">Auswahl leeren</button>
+        </div>
+      </div>
+
+      <div class="categories" id="categories">
+        <article class="category" data-category="environment">
+          <div class="category-head"><div class="category-icon">🌱</div><div class="category-heading"><h3>Umwelt, Klima &amp; Nachhaltigkeit</h3><p>Für Natur- und Klimaschutz</p></div><span class="category-count">10 Seiten</span></div>
+          <div class="site-list">
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Greenpeace" data-url="https://www.greenpeace.de/"><span class="site-info"><span class="site-name">Greenpeace</span><span class="site-desc">Umwelt- und Klimaschutz</span></span><a class="site-open" href="https://www.greenpeace.de/" target="_blank" rel="noopener noreferrer" aria-label="Greenpeace direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="WWF Deutschland" data-url="https://www.wwf.de/"><span class="site-info"><span class="site-name">WWF Deutschland</span><span class="site-desc">Tiere und Natur</span></span><a class="site-open" href="https://www.wwf.de/" target="_blank" rel="noopener noreferrer" aria-label="WWF Deutschland direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="BUND" data-url="https://www.bund.net/"><span class="site-info"><span class="site-name">BUND</span><span class="site-desc">Umwelt- und Naturschutz</span></span><a class="site-open" href="https://www.bund.net/" target="_blank" rel="noopener noreferrer" aria-label="BUND direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="NABU" data-url="https://www.nabu.de/"><span class="site-info"><span class="site-name">NABU</span><span class="site-desc">Artenvielfalt und Naturschutz</span></span><a class="site-open" href="https://www.nabu.de/" target="_blank" rel="noopener noreferrer" aria-label="NABU direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Umweltbundesamt" data-url="https://www.umweltbundesamt.de/"><span class="site-info"><span class="site-name">Umweltbundesamt</span><span class="site-desc">Umweltwissen und Forschung</span></span><a class="site-open" href="https://www.umweltbundesamt.de/" target="_blank" rel="noopener noreferrer" aria-label="Umweltbundesamt direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Umwelt im Unterricht" data-url="https://www.bundesumweltministerium.de/buergerservice/bildung/bildungsmaterialien/umwelt-im-unterricht"><span class="site-info"><span class="site-name">Umwelt im Unterricht</span><span class="site-desc">Unterrichtsmaterialien</span></span><a class="site-open" href="https://www.bundesumweltministerium.de/buergerservice/bildung/bildungsmaterialien/umwelt-im-unterricht" target="_blank" rel="noopener noreferrer" aria-label="Umwelt im Unterricht direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="ClientEarth" data-url="https://www.clientearth.org/"><span class="site-info"><span class="site-name">ClientEarth</span><span class="site-desc">Umweltrecht</span></span><a class="site-open" href="https://www.clientearth.org/" target="_blank" rel="noopener noreferrer" aria-label="ClientEarth direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Deutsche Umwelthilfe" data-url="https://www.duh.de/"><span class="site-info"><span class="site-name">Deutsche Umwelthilfe</span><span class="site-desc">Umwelt und Verbraucherschutz</span></span><a class="site-open" href="https://www.duh.de/" target="_blank" rel="noopener noreferrer" aria-label="Deutsche Umwelthilfe direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Germanwatch" data-url="https://www.germanwatch.org/"><span class="site-info"><span class="site-name">Germanwatch</span><span class="site-desc">Klima und globale Gerechtigkeit</span></span><a class="site-open" href="https://www.germanwatch.org/" target="_blank" rel="noopener noreferrer" aria-label="Germanwatch direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Klimafakten" data-url="https://www.klimafakten.de/"><span class="site-info"><span class="site-name">Klimafakten</span><span class="site-desc">Wissenschaftliche Klimainformationen</span></span><a class="site-open" href="https://www.klimafakten.de/" target="_blank" rel="noopener noreferrer" aria-label="Klimafakten direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+          </div>
+        </article>
+
+        <article class="category" data-category="education">
+          <div class="category-head"><div class="category-icon">📚</div><div class="category-heading"><h3>Schule, Lernen &amp; Bildung</h3><p>Wissen und Lernmaterialien</p></div><span class="category-count">10 Seiten</span></div>
+          <div class="site-list">
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Studyflix" data-url="https://studyflix.de/"><span class="site-info"><span class="site-name">Studyflix</span><span class="site-desc">Lernvideos und Erklärungen</span></span><a class="site-open" href="https://studyflix.de/" target="_blank" rel="noopener noreferrer" aria-label="Studyflix direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Serlo" data-url="https://de.serlo.org/"><span class="site-info"><span class="site-name">Serlo</span><span class="site-desc">Kostenlose Lernmaterialien</span></span><a class="site-open" href="https://de.serlo.org/" target="_blank" rel="noopener noreferrer" aria-label="Serlo direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="LEIFIphysik" data-url="https://www.leifiphysik.de/"><span class="site-info"><span class="site-name">LEIFIphysik</span><span class="site-desc">Physik verstehen</span></span><a class="site-open" href="https://www.leifiphysik.de/" target="_blank" rel="noopener noreferrer" aria-label="LEIFIphysik direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Schlaukopf" data-url="https://www.schlaukopf.de/"><span class="site-info"><span class="site-name">Schlaukopf</span><span class="site-desc">Übungsaufgaben für die Schule</span></span><a class="site-open" href="https://www.schlaukopf.de/" target="_blank" rel="noopener noreferrer" aria-label="Schlaukopf direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Planet Schule" data-url="https://www.planet-schule.de/"><span class="site-info"><span class="site-name">Planet Schule</span><span class="site-desc">Bildungsfilme und Lernangebote</span></span><a class="site-open" href="https://www.planet-schule.de/" target="_blank" rel="noopener noreferrer" aria-label="Planet Schule direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="ARD alpha Lernen" data-url="https://www.ardalpha.de/"><span class="site-info"><span class="site-name">ARD alpha Lernen</span><span class="site-desc">Lerninhalte und Wissen</span></span><a class="site-open" href="https://www.ardalpha.de/" target="_blank" rel="noopener noreferrer" aria-label="ARD alpha Lernen direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="ZUM-Unterrichten" data-url="https://unterrichten.zum.de/"><span class="site-info"><span class="site-name">ZUM-Unterrichten</span><span class="site-desc">Offene Unterrichtsmaterialien</span></span><a class="site-open" href="https://unterrichten.zum.de/" target="_blank" rel="noopener noreferrer" aria-label="ZUM-Unterrichten direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Deutscher Bildungsserver" data-url="https://www.bildungsserver.de/"><span class="site-info"><span class="site-name">Deutscher Bildungsserver</span><span class="site-desc">Bildungsinformationen</span></span><a class="site-open" href="https://www.bildungsserver.de/" target="_blank" rel="noopener noreferrer" aria-label="Deutscher Bildungsserver direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="MUNDO" data-url="https://mundo.schule/"><span class="site-info"><span class="site-name">MUNDO</span><span class="site-desc">Kostenlose Bildungsmedien</span></span><a class="site-open" href="https://mundo.schule/" target="_blank" rel="noopener noreferrer" aria-label="MUNDO direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="bpb" data-url="https://www.bpb.de/"><span class="site-info"><span class="site-name">bpb</span><span class="site-desc">Politik und gesellschaftliche Bildung</span></span><a class="site-open" href="https://www.bpb.de/" target="_blank" rel="noopener noreferrer" aria-label="bpb direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+          </div>
+        </article>
+
+        <article class="category" data-category="social">
+          <div class="category-head"><div class="category-icon">🤝</div><div class="category-heading"><h3>Soziales Engagement &amp; Hilfe</h3><p>Unterstützung und Miteinander</p></div><span class="category-count">10 Seiten</span></div>
+          <div class="site-list">
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Deutsches Rotes Kreuz" data-url="https://www.drk.de/"><span class="site-info"><span class="site-name">Deutsches Rotes Kreuz</span><span class="site-desc">Humanitäre Hilfe</span></span><a class="site-open" href="https://www.drk.de/" target="_blank" rel="noopener noreferrer" aria-label="Deutsches Rotes Kreuz direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="UNICEF Deutschland" data-url="https://www.unicef.de/"><span class="site-info"><span class="site-name">UNICEF Deutschland</span><span class="site-desc">Kinderrechte und Kinderhilfe</span></span><a class="site-open" href="https://www.unicef.de/" target="_blank" rel="noopener noreferrer" aria-label="UNICEF Deutschland direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Die Tafel Deutschland" data-url="https://www.tafel.de/"><span class="site-info"><span class="site-name">Die Tafel Deutschland</span><span class="site-desc">Lebensmittel retten und verteilen</span></span><a class="site-open" href="https://www.tafel.de/" target="_blank" rel="noopener noreferrer" aria-label="Die Tafel Deutschland direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Aktion Mensch" data-url="https://www.aktion-mensch.de/"><span class="site-info"><span class="site-name">Aktion Mensch</span><span class="site-desc">Inklusion und Teilhabe</span></span><a class="site-open" href="https://www.aktion-mensch.de/" target="_blank" rel="noopener noreferrer" aria-label="Aktion Mensch direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Deutscher Caritasverband" data-url="https://www.caritas.de/"><span class="site-info"><span class="site-name">Deutscher Caritasverband</span><span class="site-desc">Soziale Unterstützung</span></span><a class="site-open" href="https://www.caritas.de/" target="_blank" rel="noopener noreferrer" aria-label="Deutscher Caritasverband direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Diakonie Deutschland" data-url="https://www.diakonie.de/"><span class="site-info"><span class="site-name">Diakonie Deutschland</span><span class="site-desc">Hilfe für Menschen</span></span><a class="site-open" href="https://www.diakonie.de/" target="_blank" rel="noopener noreferrer" aria-label="Diakonie Deutschland direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Malteser" data-url="https://www.malteser.de/"><span class="site-info"><span class="site-name">Malteser</span><span class="site-desc">Soziale und humanitäre Hilfe</span></span><a class="site-open" href="https://www.malteser.de/" target="_blank" rel="noopener noreferrer" aria-label="Malteser direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Johanniter" data-url="https://www.johanniter.de/"><span class="site-info"><span class="site-name">Johanniter</span><span class="site-desc">Hilfe und Rettungsdienst</span></span><a class="site-open" href="https://www.johanniter.de/" target="_blank" rel="noopener noreferrer" aria-label="Johanniter direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Nebenan.de" data-url="https://nebenan.de/"><span class="site-info"><span class="site-name">Nebenan.de</span><span class="site-desc">Nachbarschaft und Gemeinschaft</span></span><a class="site-open" href="https://nebenan.de/" target="_blank" rel="noopener noreferrer" aria-label="Nebenan.de direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="GoVolunteer" data-url="https://govolunteer.com/"><span class="site-info"><span class="site-name">GoVolunteer</span><span class="site-desc">Freiwilliges Engagement entdecken</span></span><a class="site-open" href="https://govolunteer.com/" target="_blank" rel="noopener noreferrer" aria-label="GoVolunteer direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+          </div>
+        </article>
+
+        <article class="category" data-category="science">
+          <div class="category-head"><div class="category-icon">🔬</div><div class="category-heading"><h3>Wissenschaft, Forschung &amp; Wissen</h3><p>Forschung, Daten und Entdeckungen</p></div><span class="category-count">10 Seiten</span></div>
+          <div class="site-list">
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Max-Planck-Gesellschaft" data-url="https://www.mpg.de/"><span class="site-info"><span class="site-name">Max-Planck-Gesellschaft</span><span class="site-desc">Forschung und Wissenschaft</span></span><a class="site-open" href="https://www.mpg.de/" target="_blank" rel="noopener noreferrer" aria-label="Max-Planck-Gesellschaft direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Fraunhofer-Gesellschaft" data-url="https://www.fraunhofer.de/"><span class="site-info"><span class="site-name">Fraunhofer-Gesellschaft</span><span class="site-desc">Technologie und Innovation</span></span><a class="site-open" href="https://www.fraunhofer.de/" target="_blank" rel="noopener noreferrer" aria-label="Fraunhofer-Gesellschaft direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Deutsches Zentrum für Luft- und Raumfahrt" data-url="https://www.dlr.de/"><span class="site-info"><span class="site-name">Deutsches Zentrum für Luft- und Raumfahrt</span><span class="site-desc">Raumfahrt und Forschung</span></span><a class="site-open" href="https://www.dlr.de/" target="_blank" rel="noopener noreferrer" aria-label="DLR direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="NASA" data-url="https://www.nasa.gov/"><span class="site-info"><span class="site-name">NASA</span><span class="site-desc">Weltraumforschung</span></span><a class="site-open" href="https://www.nasa.gov/" target="_blank" rel="noopener noreferrer" aria-label="NASA direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="ESA" data-url="https://www.esa.int/"><span class="site-info"><span class="site-name">ESA</span><span class="site-desc">Europäische Raumfahrt</span></span><a class="site-open" href="https://www.esa.int/" target="_blank" rel="noopener noreferrer" aria-label="ESA direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Wikimedia Deutschland" data-url="https://www.wikimedia.de/"><span class="site-info"><span class="site-name">Wikimedia Deutschland</span><span class="site-desc">Freies Wissen</span></span><a class="site-open" href="https://www.wikimedia.de/" target="_blank" rel="noopener noreferrer" aria-label="Wikimedia Deutschland direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Our World in Data" data-url="https://ourworldindata.org/"><span class="site-info"><span class="site-name">Our World in Data</span><span class="site-desc">Daten zu globalen Herausforderungen</span></span><a class="site-open" href="https://ourworldindata.org/" target="_blank" rel="noopener noreferrer" aria-label="Our World in Data direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Quarks" data-url="https://www.quarks.de/"><span class="site-info"><span class="site-name">Quarks</span><span class="site-desc">Wissenschaft verständlich erklärt</span></span><a class="site-open" href="https://www.quarks.de/" target="_blank" rel="noopener noreferrer" aria-label="Quarks direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Spektrum der Wissenschaft" data-url="https://www.spektrum.de/"><span class="site-info"><span class="site-name">Spektrum der Wissenschaft</span><span class="site-desc">Wissenschaftliche Erkenntnisse</span></span><a class="site-open" href="https://www.spektrum.de/" target="_blank" rel="noopener noreferrer" aria-label="Spektrum der Wissenschaft direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Deutsches Museum" data-url="https://www.deutsches-museum.de/"><span class="site-info"><span class="site-name">Deutsches Museum</span><span class="site-desc">Technik und Naturwissenschaft</span></span><a class="site-open" href="https://www.deutsches-museum.de/" target="_blank" rel="noopener noreferrer" aria-label="Deutsches Museum direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+          </div>
+        </article>
+
+        <article class="category" data-category="rights">
+          <div class="category-head"><div class="category-icon">🌍</div><div class="category-heading"><h3>Menschenrechte, Demokratie &amp; eine bessere Welt</h3><p>Rechte, Beteiligung und Transparenz</p></div><span class="category-count">10 Seiten</span></div>
+          <div class="site-list">
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Amnesty International Deutschland" data-url="https://www.amnesty.de/"><span class="site-info"><span class="site-name">Amnesty International Deutschland</span><span class="site-desc">Menschenrechte</span></span><a class="site-open" href="https://www.amnesty.de/" target="_blank" rel="noopener noreferrer" aria-label="Amnesty International direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Human Rights Watch" data-url="https://www.hrw.org/"><span class="site-info"><span class="site-name">Human Rights Watch</span><span class="site-desc">Menschenrechtsarbeit weltweit</span></span><a class="site-open" href="https://www.hrw.org/" target="_blank" rel="noopener noreferrer" aria-label="Human Rights Watch direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="United Nations" data-url="https://www.un.org/"><span class="site-info"><span class="site-name">United Nations</span><span class="site-desc">Internationale Zusammenarbeit</span></span><a class="site-open" href="https://www.un.org/" target="_blank" rel="noopener noreferrer" aria-label="United Nations direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="UN Sustainable Development Goals" data-url="https://sdgs.un.org/goals"><span class="site-info"><span class="site-name">UN Sustainable Development Goals</span><span class="site-desc">Die 17 Nachhaltigkeitsziele</span></span><a class="site-open" href="https://sdgs.un.org/goals" target="_blank" rel="noopener noreferrer" aria-label="UN Sustainable Development Goals direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Transparency International" data-url="https://www.transparency.org/"><span class="site-info"><span class="site-name">Transparency International</span><span class="site-desc">Korruptionsbekämpfung</span></span><a class="site-open" href="https://www.transparency.org/" target="_blank" rel="noopener noreferrer" aria-label="Transparency International direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Mehr Demokratie" data-url="https://www.mehr-demokratie.de/"><span class="site-info"><span class="site-name">Mehr Demokratie</span><span class="site-desc">Demokratische Beteiligung</span></span><a class="site-open" href="https://www.mehr-demokratie.de/" target="_blank" rel="noopener noreferrer" aria-label="Mehr Demokratie direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Jugend debattiert" data-url="https://www.jugend-debattiert.de/"><span class="site-info"><span class="site-name">Jugend debattiert</span><span class="site-desc">Argumentieren und diskutieren</span></span><a class="site-open" href="https://www.jugend-debattiert.de/" target="_blank" rel="noopener noreferrer" aria-label="Jugend debattiert direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Deutscher Jugendring" data-url="https://www.dbjr.de/"><span class="site-info"><span class="site-name">Deutscher Jugendring</span><span class="site-desc">Jugendverbände und Jugendpolitik</span></span><a class="site-open" href="https://www.dbjr.de/" target="_blank" rel="noopener noreferrer" aria-label="Deutscher Jugendring direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Stiftung Lesen" data-url="https://www.stiftunglesen.de/"><span class="site-info"><span class="site-name">Stiftung Lesen</span><span class="site-desc">Leseförderung</span></span><a class="site-open" href="https://www.stiftunglesen.de/" target="_blank" rel="noopener noreferrer" aria-label="Stiftung Lesen direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+            <label class="site"><input class="site-check" type="checkbox" checked data-name="Open Knowledge Foundation Deutschland" data-url="https://okfn.de/"><span class="site-info"><span class="site-name">Open Knowledge Foundation Deutschland</span><span class="site-desc">Offenes Wissen und Transparenz</span></span><a class="site-open" href="https://okfn.de/" target="_blank" rel="noopener noreferrer" aria-label="Open Knowledge Foundation direkt öffnen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></a></label>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <aside class="note"><span class="note-icon">ⓘ</span><div><strong>Hinweis zu Browser-Schutz und Hintergrund-Tabs</strong><p>Websites dürfen nicht zuverlässig erzwingen, dass Tabs im Hintergrund bleiben. Dein Browser kann viele neue Tabs blockieren oder in den Vordergrund holen. History Cleaner versucht, die Tabs während deiner Klick-Aktion vorzubereiten und die ausgewählten Seiten anschließend zeitversetzt zu laden. Die tatsächliche Anzahl hängt von deinen Browser-Einstellungen ab. Es werden keine Seiteninhalte ausgelesen und keine Daten an History Cleaner gesendet.</p></div></aside>
+  </main>
+
+  <div class="modal-backdrop" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg></div>
+      <h3 id="modalTitle">Auswahl jetzt öffnen?</h3>
+      <p>History Cleaner bereitet für jede ausgewählte Website einen eigenen Tab vor und lädt die Seiten mit dem gewählten Abstand. Das kann viele Tabs auf einmal erzeugen.</p>
+      <div class="modal-summary" id="modalSummary">Du hast <strong>50 Websites</strong> ausgewählt.</div>
+      <div class="modal-actions"><button class="secondary" id="cancelModalBtn" type="button">Abbrechen</button><button class="primary" id="confirmStartBtn" type="button">Tabs öffnen <span aria-hidden="true">↗</span></button></div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+      const checks = Array.from(document.querySelectorAll('.site-check'));
+      const categoryCards = Array.from(document.querySelectorAll('.category'));
+      const startBtn = document.getElementById('startBtn');
+      const stopBtn = document.getElementById('stopBtn');
+      const selectAllBtn = document.getElementById('selectAllBtn');
+      const selectNoneBtn = document.getElementById('selectNoneBtn');
+      const selectedStat = document.getElementById('selectedStat');
+      const controlCaption = document.getElementById('controlCaption');
+      const delayRange = document.getElementById('delayRange');
+      const delayValue = document.getElementById('delayValue');
+      const searchInput = document.getElementById('searchInput');
+      const modal = document.getElementById('confirmModal');
+      const modalSummary = document.getElementById('modalSummary');
+      const cancelModalBtn = document.getElementById('cancelModalBtn');
+      const confirmStartBtn = document.getElementById('confirmStartBtn');
+      const progressCard = document.getElementById('progressCard');
+      const progressTitle = document.getElementById('progressTitle');
+      const progressCount = document.getElementById('progressCount');
+      const progressFill = document.getElementById('progressFill');
+      const statusText = document.getElementById('statusText');
+
+      let runTimer = null;
+      let isRunning = false;
+      let tabQueue = [];
+      let totalToOpen = 0;
+      let navigatedCount = 0;
+      let blockedCount = 0;
+      let closedCount = 0;
+      let lastFocused = null;
+
+      const getSelected = () => checks.filter(check => check.checked).map(check => ({
+        name: check.dataset.name,
+        url: check.dataset.url,
+        checkbox: check
+      }));
+
+      function updateSelectionUI() {
+        const selected = getSelected().length;
+        selectedStat.textContent = String(selected).padStart(2, '0');
+        controlCaption.textContent = `${selected} ${selected === 1 ? 'Website ausgewählt' : 'Websites ausgewählt'} · ${selected ? 'werden nacheinander geladen.' : 'wähle mindestens eine Seite aus.'}`;
+        startBtn.disabled = selected === 0 || isRunning;
+        categoryCards.forEach(card => {
+          const categoryChecks = Array.from(card.querySelectorAll('.site-check'));
+          const number = categoryChecks.filter(item => item.checked).length;
+          const counter = card.querySelector('.category-count');
+          if (counter) counter.textContent = `${number}/10 ausgewählt`;
+        });
+      }
+
+      function setStatus(title, message, done = 0, total = totalToOpen) {
+        progressCard.classList.add('visible');
+        progressTitle.textContent = title;
+        progressCount.textContent = `${done} / ${total}`;
+        progressFill.style.width = total ? `${Math.min(100, done / total * 100)}%` : '0%';
+        statusText.textContent = message;
+      }
+
+      function delayMs() { return Number(delayRange.value); }
+      function refreshDelayLabel() {
+        const value = delayMs();
+        delayValue.textContent = value < 1000 ? `${value} ms` : `${(value / 1000).toLocaleString('de-DE', { maximumFractionDigits: 2 })} Sek.`;
+      }
+
+      function showModal() {
+        const selected = getSelected();
+        if (!selected.length || isRunning) return;
+        modalSummary.innerHTML = `Du hast <strong>${selected.length} ${selected.length === 1 ? 'Website' : 'Websites'}</strong> ausgewählt.<br>Abstand: <strong>${delayValue.textContent}</strong><br>Benötigte Zeit für das Laden: ungefähr <strong>${Math.ceil(selected.length * delayMs() / 1000)} Sek.</strong>`;
+        modal.classList.add('open');
+        confirmStartBtn.focus();
+      }
+      function hideModal() {
+        modal.classList.remove('open');
+        startBtn.focus();
+      }
+
+      function startOpening() {
+        const selected = getSelected();
+        if (!selected.length || isRunning) return;
+        hideModal();
+        isRunning = true;
+        totalToOpen = selected.length;
+        navigatedCount = 0;
+        blockedCount = 0;
+        closedCount = 0;
+        tabQueue = [];
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        delayRange.disabled = true;
+        checks.forEach(check => { check.disabled = true; });
+        selectAllBtn.disabled = true;
+        selectNoneBtn.disabled = true;
+        searchInput.disabled = true;
+        setStatus('Tabs werden vorbereitet …', 'Dein Browser entscheidet, wie viele neue Tabs erlaubt sind. Bitte lass diesen Tab geöffnet.', 0, totalToOpen);
+
+        // Alle Fensterkontexte werden direkt innerhalb dieser bewussten Nutzeraktion angefordert,
+        // damit sie nicht erst durch spätere Timer als Pop-ups gewertet werden.
+        selected.forEach(site => {
+          let tab = null;
+          try { tab = window.open('about:blank', '_blank'); } catch (_) { tab = null; }
+          if (tab && !tab.closed) {
+            tabQueue.push({ ...site, tab, navigated: false });
+          } else {
+            blockedCount += 1;
+          }
+        });
+
+        if (tabQueue.length === 0) {
+          finishOpening(true);
+          setStatus('Der Browser hat neue Tabs blockiert', `Es konnte kein Tab vorbereitet werden. Erlaube Pop-ups für diese Seite und starte erneut. (${blockedCount} blockiert)`, 0, totalToOpen);
+          return;
+        }
+
+        if (blockedCount) {
+          setStatus('Seiten werden nacheinander geladen …', `${tabQueue.length} Tabs vorbereitet, ${blockedCount} durch den Browser blockiert.`, 0, totalToOpen);
+        } else {
+          setStatus('Seiten werden nacheinander geladen …', `${tabQueue.length} Tabs vorbereitet. Seiten werden mit ${delayValue.textContent} Abstand geladen.`, 0, totalToOpen);
+        }
+
+        let index = 0;
+        const navigateNext = () => {
+          if (!isRunning) return;
+          if (index >= tabQueue.length) {
+            finishOpening(false);
+            return;
+          }
+          const item = tabQueue[index++];
+          try {
+            if (item.tab && !item.tab.closed) {
+              item.tab.location.replace(item.url);
+              item.navigated = true;
+              navigatedCount += 1;
+            } else {
+              closedCount += 1;
+            }
+          } catch (_) {
+            blockedCount += 1;
+          }
+          setStatus('Seiten werden nacheinander geladen …', `${navigatedCount} Seiten gestartet${blockedCount ? ` · ${blockedCount} blockiert` : ''}${closedCount ? ` · ${closedCount} Tabs geschlossen` : ''}.`, navigatedCount + blockedCount + closedCount, totalToOpen);
+          if (index >= tabQueue.length) {
+            finishOpening(false);
+          } else {
+            runTimer = window.setTimeout(navigateNext, delayMs());
+          }
+        };
+        runTimer = window.setTimeout(navigateNext, Math.min(delayMs(), 500));
+      }
+
+      function finishOpening(stopped) {
+        if (runTimer !== null) {
+          window.clearTimeout(runTimer);
+          runTimer = null;
+        }
+        isRunning = false;
+        startBtn.disabled = getSelected().length === 0;
+        stopBtn.disabled = true;
+        delayRange.disabled = false;
+        checks.forEach(check => { check.disabled = false; });
+        selectAllBtn.disabled = false;
+        selectNoneBtn.disabled = false;
+        searchInput.disabled = false;
+        updateSelectionUI();
+
+        // Nicht geladene, noch leere Tabs aufräumen, falls der Nutzer stoppt.
+        if (stopped) {
+          tabQueue.forEach(item => {
+            if (!item.navigated && item.tab && !item.tab.closed) {
+              try { item.tab.close(); } catch (_) { /* Der Browser kann das Schließen verweigern. */ }
+            }
+          });
+          setStatus('Vorgang gestoppt', `${navigatedCount} Seiten wurden gestartet. Noch leere Tabs wurden, soweit möglich, geschlossen.`, navigatedCount + blockedCount + closedCount, totalToOpen);
+        } else if (blockedCount || closedCount) {
+          setStatus('Vorgang abgeschlossen – mit Einschränkungen', `${navigatedCount} Seiten gestartet · ${blockedCount} blockiert · ${closedCount} Tabs geschlossen. Pop-up-Einstellungen können die Anzahl begrenzen.`, navigatedCount + blockedCount + closedCount, totalToOpen);
+        } else {
+          setStatus('Fertig – alle Tabs angestoßen', `${navigatedCount} Websites wurden zum Laden angestoßen. Wie viele tatsächlich geladen werden, hängt von deinem Browser und den Zielseiten ab.`, totalToOpen, totalToOpen);
+        }
+      }
+
+      function stopOpening() {
+        if (!isRunning) return;
+        finishOpening(true);
+      }
+
+      checks.forEach(check => check.addEventListener('change', updateSelectionUI));
+      selectAllBtn.addEventListener('click', () => {
+        checks.forEach(check => {
+          const site = check.closest('.site');
+          if (site && site.style.display !== 'none') check.checked = true;
+        });
+        updateSelectionUI();
+      });
+      selectNoneBtn.addEventListener('click', () => {
+        checks.forEach(check => { check.checked = false; });
+        updateSelectionUI();
+      });
+      delayRange.addEventListener('input', refreshDelayLabel);
+      startBtn.addEventListener('click', showModal);
+      cancelModalBtn.addEventListener('click', hideModal);
+      confirmStartBtn.addEventListener('click', startOpening);
+      stopBtn.addEventListener('click', stopOpening);
+      modal.addEventListener('click', event => { if (event.target === modal) hideModal(); });
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && modal.classList.contains('open')) hideModal();
+      });
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim().toLocaleLowerCase('de-DE');
+        categoryCards.forEach(card => {
+          let visibleCount = 0;
+          card.querySelectorAll('.site').forEach(site => {
+            const text = site.innerText.toLocaleLowerCase('de-DE');
+            const visible = !query || text.includes(query);
+            site.classList.toggle('hidden', !visible);
+            if (visible) visibleCount += 1;
+          });
+          card.classList.toggle('empty', visibleCount === 0);
+        });
+      });
+
+      document.querySelectorAll('.site-open').forEach(link => {
+        link.addEventListener('click', event => event.stopPropagation());
+      });
+
+      refreshDelayLabel();
+      updateSelectionUI();
+    })();
+  </script>
+</body>
+</html>
